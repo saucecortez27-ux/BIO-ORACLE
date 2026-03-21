@@ -145,4 +145,7 @@ data class TaxonomicNode(
     val scientificNameWithoutAuthor: String,
     val scientificNameAuthorship: String?
 )
-```
+
+
+
+THANKS ALEPH HACKATHON!, YOU REVEAL THIS SIDE OF ME IN THIS ACTIVITY, IF A LOSE THIS CONTEST, MY PROJECT WILL HAPPEN ANYWAY!
