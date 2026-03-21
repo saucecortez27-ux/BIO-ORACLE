@@ -149,3 +149,146 @@ data class TaxonomicNode(
 
 
 THANKS ALEPH HACKATHON!, YOU REVEAL THIS SIDE OF ME IN THIS ACTIVITY, IF A LOSE THIS CONTEST, MY PROJECT WILL HAPPEN ANYWAY!
+
+@Composable
+fun CameraScreen(onBack: () -> Unit) {
+
+    var resultadoTexto by remember { mutableStateOf<String?>(null) }
+    var hasLocationPermission by remember { mutableStateOf(false) }
+
+    val locationLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestPermission(),
+        onResult = { granted ->
+            hasLocationPermission = granted
+        }
+    )
+
+    val context = androidx.compose.ui.platform.LocalContext.current
+    var hasPermission by remember { mutableStateOf(false) }
+    var capturedImagePath by remember { mutableStateOf<String?>(null) }
+
+    val launcher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestPermission(),
+        onResult = { granted ->
+            hasPermission = granted
+        }
+    )
+
+    LaunchedEffect(Unit) {
+        launcher.launch(android.Manifest.permission.CAMERA)
+        locationLauncher.launch(android.Manifest.permission.ACCESS_FINE_LOCATION)
+    }
+
+    if (!hasPermission) {
+        Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+            Text("Esperando permiso...", color = Color.White)
+        }
+        return
+    }
+
+    // 🧠 FOTO CAPTURADA
+    if (capturedImagePath != null) {
+
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(Color.Black)
+        ) {
+
+            AndroidView(
+                factory = { ctx ->
+                    android.widget.ImageView(ctx).apply {
+                        setImageURI(android.net.Uri.fromFile(java.io.File(capturedImagePath!!)))
+                        scaleType = android.widget.ImageView.ScaleType.CENTER_CROP
+                    }
+                },
+                modifier = Modifier
+                    .weight(1f)
+                    .fillMaxWidth()
+            )
+
+            // 👇 RESULTADO EN PANTALLA (AQUÍ APARECE)
+            resultadoTexto?.let {
+                Text(
+                    text = it,
+                    color = Color.White,
+                    fontSize = 16.sp,
+                    modifier = Modifier.padding(16.dp)
+                )
+            }
+
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .background(Color.Black),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+
+                Button(
+                    onClick = {
+
+                        val file = java.io.File(capturedImagePath!!)
+
+                        Thread {
+                            try {
+                                val client = PlantNetApiClient(
+                                    apiKey = "2b10zSkt4sHMeeBoRCP9xSH6lO"
+                                )
+
+                                val result = client.identify(
+                                    mapOf(file to "leaf")
+                                )
+
+                                val nombre =
+                                    result.results.firstOrNull()?.species?.scientificNameWithoutAuthor
+                                        ?: "No identificado"
+
+                                (context as android.app.Activity).runOnUiThread {
+
+                                    // 👇 AQUÍ GUARDAMOS RESULTADO EN VARIABLE (NO TOAST)
+                                    resultadoTexto = "🌱 $nombre\n📍 Obteniendo ubicación..."
+
+                                    getLocation(context) { ubicacion ->
+
+                                        resultadoTexto = "🌱 $nombre\n📍 $ubicacion"
+                                    }
+                                }
+
+                            } catch (e: Exception) {
+                                e.printStackTrace()
+
+                                (context as android.app.Activity).runOnUiThread {
+                                    resultadoTexto = "❌ Error al analizar"
+                                }
+                            }
+                        }.start()
+                    },
+                    modifier = Modifier.padding(8.dp)
+                ) {
+                    Text("ANCHOR TO HUMANITY")
+                }
+
+                Button(
+                    onClick = {
+                        capturedImagePath = null
+                        resultadoTexto = null
+                    },
+                    modifier = Modifier.padding(8.dp)
+                ) {
+                    Text("REINTENTAR")
+                }
+
+                Button(
+                    onClick = { onBack() },
+                    modifier = Modifier.padding(8.dp)
+                ) {
+                    Text("VOLVER")
+                }
+            }
+        }
+
+    } else {
+
+
+WORKS!, WE HAVE A PLANT RECOGNIZER (SORRY FOR ENGLISH BASIC, IAM FROM LATAM COCHABAMBA-BOLIVA, COUNTRY OF BEATIFUL PLANTS)
+
